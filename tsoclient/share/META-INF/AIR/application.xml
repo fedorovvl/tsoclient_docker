@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?> 
+<application xmlns="http://ns.adobe.com/air/application/2.6">
+	
+	<id>TSOclient</id> 
+	<versionNumber>1.0</versionNumber> 
+	<filename>TSOClient</filename> 
+	
+	<name>TSO client</name> 
+	<description>Make TSO great again</description> 
+	
+	<icon> 
+    <image16x16>assets/16.png</image16x16> 
+    <image32x32>assets/32.png</image32x32> 
+    <image48x48>assets/48.png</image48x48> 
+    <image128x128>assets/128.png</image128x128> 
+  </icon> 
+	
+	<initialWindow> 
+		<title>TSO client</title> 
+		<content>client.swf</content> 
+		<systemChrome>standard</systemChrome> 
+		<transparent>false</transparent> 
+		<visible>true</visible> 
+		<minimizable>true</minimizable> 
+		<maximizable>true</maximizable> 
+		<resizable>true</resizable> 
+	</initialWindow> 
+</application>
