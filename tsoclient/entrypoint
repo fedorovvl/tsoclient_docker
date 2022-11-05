@@ -47,9 +47,9 @@ class tso:
     if not self.region in self.valid_region:
       print("Not valid region.. valid is %s" % ', '.join(self.valid_region.keys()))
       exit()
-    req = request.Request('https://sirris.tsomaps.com/client.swf.sum')
+    req = request.Request('https://api.github.com/repos/fedorovvl/tso_client/contents/client.swf')
     with request.urlopen(req) as response:
-      self.shasum = response.read().decode('utf-8')
+      self.shasum = json.loads(response.read().decode('utf-8'))
     self.check_swf()
     self.login()
 
@@ -85,23 +85,27 @@ class tso:
     if not self.region:
       self.get_region(True)
 
-  def sha1sum(self, filename, bufsize=128 * 1024):
+  def git_blob_hash(self, data):
+    if isinstance(data, str):
+        data = data.encode()
+    data = b'blob ' + str(len(data)).encode() + b'\0' + data
     h = hashlib.sha1()
-    buffer = bytearray(bufsize)
-    buffer_view = memoryview(buffer)
-    with open(filename, 'rb', buffering=0) as f:
-        while True:
-            n = f.readinto(buffer_view)
-            if not n:
-                break
-            h.update(buffer_view[:n])
+    h.update(data)
     return h.hexdigest()
+
+  def sha1sum(self, filename):
+    with open(filename, 'rb') as file_for_hash:
+      data = file_for_hash.read()
+      return self.git_blob_hash(data)
 
   def check_swf(self):
     sha1 = self.sha1sum("/tso/share/client.swf")
-    if sha1 != self.shasum:
-      print("You have image with old swf file. Please pull new image")
-      exit()
+    if sha1 != self.shasum['sha']:
+      print("SWF outdated.. download new swf")
+      req = request.Request('https://raw.githubusercontent.com/fedorovvl/tso_client/master/client.swf')
+      with request.urlopen(req) as response:
+        with open("/tso/share/client.swf", 'wb') as out:
+          out.write(response.read())
 
   def get_response(self, req):
     with request.urlopen(req) as response:
@@ -160,23 +164,23 @@ class tso:
     req = request.Request(self.get_req_url("play"), data=parse.urlencode({"start": 1}).encode(), headers=self.default_headers, method="POST")
     data = self.get_response(req)
     if data != False:
-      if data.find("thisProgram") == -1:
+      if data.find("dsoAuthToken") == -1:
         print("Can't find start params")
         return False
       return self.stage4(data)
     return False
 
   def stage4(self, data):
-    if not re.search('thisProgram: "(.*)"', data):
+    if not re.search('return "lang', data):
       print("Fail parse tso url")
       return False
-    m = re.search('thisProgram: "(.*)"', data)
+    m = re.search('return "lang(.*)"', data)
     urlParams = parse.parse_qs(m.group(1))
     if self.lang != None:
       urlParams["lang"] = self.lang
     urlParams["bb"] = urlParams["bb"][0].replace('https', 'http')
     urlParams["baseUri"] = self.valid_region[self.region]["domain"]
-    self.tsoUrl = "tso://{}".format(parse.urlencode(urlParams, doseq=True))
+    self.tsoUrl = "tso://lang{}".format(parse.urlencode(urlParams, doseq=True))
     return True
 
   def login(self):
